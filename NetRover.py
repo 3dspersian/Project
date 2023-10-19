@@ -79,7 +79,7 @@ if check.lower() == 'n':
 # Checks ftp for anon login
 def ftp_login_download(server=target):
     global ftp_dir
-    ftp_dir = f"{working_dir}/ftp"
+    ftp_dir = working_dir.strip() + "/ftp"
     # check if the local ftp_directory to store the downloaded files is already created
     if not os.path.exists(ftp_dir):
         os.makedirs(ftp_dir)
@@ -95,23 +95,6 @@ def ftp_login_download(server=target):
     except Exception as e:
         print(Fore.RED + "\n Exiting..." + Style.RESET_ALL)
         print(e)
-    # else:
-        # list files and directories in the current dir
-        # files = ftp.nlst()
-        # if files:
-        #     print("\nFound the following files:\n")
-        #     for file in files:
-        #         print(Fore.YELLOW + file + Style.RESET_ALL)
-        #         if is_ftp_directory(ftp, file):
-        #             try:
-        #                 ftp.cwd(file)
-        #                 items = ftp.nlst()
-        #                 for item in items:
-        #                     with open(item, 'wb') as local_file:
-        #                         ftp.retrbinary('RETR ' + item, local_file.write)
-        #                 ftp.cwd('..')
-        #             except Exception as e:
-        #                 print(f"An error occurred: {e}")
     ftp.quit()
 
 # checks if the item is a directory, if yes returns true.
@@ -123,47 +106,30 @@ def is_ftp_directory(ftp, item):
     except:
         return False
 noxing = []
-# download files  !!!!!!!! There's an error with this function. Need to take a look next time i open it.
+# download files 
 def download_ftp_files(ftp, path):
     ftp.cwd(path) # Change directory to the specified path
     items = ftp.nlst() # List items in curr directory
+    if items:
+        print(f"\nFound the following files in '{path}':\n")
+        for item in items:
+            if is_ftp_directory(ftp, item):
+                print(Fore.BLUE + item + Style.RESET_ALL)
+                #Create local dir to save files in
+                local_subdir = os.path.join(ftp_dir, item)
+                os.makedirs(local_subdir, exist_ok=True)
+                # Recursively go into subdirectories
+                download_ftp_files(ftp, item)
 
-    for item in items:
-        if is_ftp_directory(ftp, item):
-            #Create local dir to save files in
-            local_subdir = os.path.join(ftp_dir, item)
-            os.makedirs(local_subdir, exist_ok=True)
-
-            # Recursively go into subdirectories
-            download_ftp_files(ftp, item)
-        else:
-            # Download files in curr directory
-            local_file_path = os.path.join(ftp_dir, item)
-            with open(local_file_path, 'wb') as local_file:
-                ftp.retrbinary('RETR ' + item, local_file.write)
-            noxing.append(item)
-                
-
-
-# list ftp directory
-# def list_ftp_directory(ftp, directory=".", level=0):
-#     try:
-#         ftp.cwd(directory)
-#     except Exception as e:
-#         print(f"\nCould not change to directory {directory}: {e}")
-#         return
-#     # list files and directories in the current dir
-#     files = ftp.nlst()
-
-#     if files:
-#         print("\nFound the following files:\n")
-#         for file in files:
-#             print(Fore.YELLOW + file + Style.RESET_ALL)
-#             if is_ftp_directory(ftp, file):
+            else:
+                print(Fore.YELLOW + item + Style.RESET_ALL)
+                # Download files in curr directory
+                local_file_path = os.path.join(ftp_dir, item)
+                with open(local_file_path, 'wb') as local_file:
+                    ftp.retrbinary('RETR ' + item, local_file.write)
+                noxing.append(item)
+    else:
+        print(Fore.RED + f"The folder: {path} is empty" + Style.RESET_ALL)
+        ftp.cwd("..")
 
 ftp_login_download()
-
-if noxing:
-    print("\nFound the following files:\n")
-    for item in noxing:
-        print(Fore.YELLOW + item + Style.RESET_ALL)
