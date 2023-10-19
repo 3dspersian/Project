@@ -70,11 +70,6 @@ def nmap_scan(t):
 
 deep_scan = nmap_scan(target)
 
-# Check if the user wants to continue to do all advanced scans.
-check = input(Fore.GREEN + "\nDo you want to perform all advanced scans? (y/N)" + Style.RESET_ALL)
-if check.lower() == 'n':
-    print(Fore.RED + "\nExiting..." + Style.RESET_ALL)
-    sys.exit(0)
 
 # Checks ftp for anon login
 def ftp_login_download(server=target):
@@ -105,7 +100,7 @@ def is_ftp_directory(ftp, item):
         return True
     except:
         return False
-noxing = []
+
 # download files 
 def download_ftp_files(ftp, path):
     ftp.cwd(path) # Change directory to the specified path
@@ -127,9 +122,28 @@ def download_ftp_files(ftp, path):
                 local_file_path = os.path.join(ftp_dir, item)
                 with open(local_file_path, 'wb') as local_file:
                     ftp.retrbinary('RETR ' + item, local_file.write)
-                noxing.append(item)
+
     else:
         print(Fore.RED + f"The folder: {path} is empty" + Style.RESET_ALL)
         ftp.cwd("..")
 
-ftp_login_download()
+""""""
+
+
+
+
+
+
+
+
+
+
+# Check if the user wants to continue to do all advanced scans.
+check = input(Fore.GREEN + "\nDo you want to perform all advanced scans? (y/N)" + Style.RESET_ALL)
+if check.lower() != 'y':
+    print(Fore.RED + "\nExiting..." + Style.RESET_ALL)
+    sys.exit(0)
+
+
+if '21' in port_list:
+    ftp_login_download()
