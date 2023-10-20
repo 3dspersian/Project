@@ -140,10 +140,23 @@ def download_ftp_files(ftp, path, local_dir=ftp_dir):
         ftp.cwd("..")
 
 #  SMB
+def smb_login_download(server_name=target):
+    # create smb connection object
+    smb_connection = SMBConnection('', '', 'client', server_name, use_ntlm_v2=False)
 
+def smb_list_shares(smb, server_name=target):
+    list_of_shares = []
+    # Connect
+    try:
+        smb.connect(server_name, 139)
 
-
-
+        # list shares
+        shares = smb.listShares()
+        for share in shares:
+            list_of_shares.append(share.name)
+            print(Fore.YELLOW + share.name + Style.RESET_ALL)
+    finally:
+        smb.close
 
 
 
