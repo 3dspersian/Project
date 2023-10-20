@@ -7,6 +7,16 @@ import os
 from ftplib import FTP 
 from smb.SMBConnection import SMBConnection
 
+netrover_ascii = '''
+   ____   ____   ____   ____   ____   ____   ____   ____
+  /  _/  /  _/  /  _/  /  _/  /  _/  /  _/  /  _/  /  _/
+ _/  _/ _/  _/ _/  _/ _/  _/ _/  _/ _/  _/ _/  _/ _/  _/
+/ N  / / E  / / T  / / R  / / O  / / V  / / E  / / R  /
+\__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  
+'''
+
+print(netrover_ascii)
+
 #____
 working_dir = subprocess.Popen('pwd',shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 working_dir, _ = working_dir.communicate()
