@@ -48,14 +48,14 @@ def initial_scan(target):
     except Exception as e:
         print(f"An error occurred: {str(e)}")
     return port_list
-port_list = initial_scan(target)
+
 
 # deep nmap scan
-def nmap_scan(t):
+def nmap_scan(t,ports):
     output_file = 'nmap.scan'
 
     # Formatting the discovered ports by separating them by commas
-    discovery = ','.join(port_list)
+    discovery = ','.join(ports)
     
     # Deep nmap scan
     command = ['nmap', '-p', discovery, '-A', t, '-oN', output_file]
@@ -75,6 +75,7 @@ deep_scan = nmap_scan(target)
 
 # Checks ftp for anon login
 def ftp_login_download(server=target):
+    print("\nEnumerating FTP with ANON credentials...")
     global ftp_dir
     ftp_dir = working_dir.strip() + "/ftp"
     # check if the local ftp_directory to store the downloaded files is already created
@@ -143,10 +144,16 @@ def download_ftp_files(ftp, path, local_dir=ftp_dir):
 # Check if the user wants to continue to do all advanced scans.
 print("What type of scan do you want to perform?")
 check = input(Fore.GREEN + "\nNmap Scan (1)\nFTP Enumeration (2)\nAll Scans (3)" + Style.RESET_ALL)
-if check.lower() != 'y':
-    print(Fore.RED + "\nExiting..." + Style.RESET_ALL)
+if str(check) != '1':
+    port_list = initial_scan(target)
+    deep_scan = nmap_scan(target, port_list)
+
+elif str(check) == '2':
+    ftp_enum = ftp_login_download()
+elif str(check) == '3':
+    port_list = initial_scan(target)
+    deep_scan = nmap_scan(target, port_list)
+    ftp_enum = ftp_login_download()
+else:
+    print(Fore.RED + "\nInvalid option, Exiting..." + Style.RESET_ALL)
     sys.exit(0)
-
-
-if '21' in port_list:
-    ftp_login_download()
