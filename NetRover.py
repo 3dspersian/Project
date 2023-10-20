@@ -5,7 +5,8 @@ import re
 from colorama import Fore, Style
 import os
 from ftplib import FTP 
-import time
+from smb.SMBConnection import SMBConnection
+
 #____
 working_dir = subprocess.Popen('pwd',shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 working_dir, _ = working_dir.communicate()
@@ -70,6 +71,7 @@ def nmap_scan(t):
 
 deep_scan = nmap_scan(target)
 
+#  FTP
 
 # Checks ftp for anon login
 def ftp_login_download(server=target):
@@ -88,7 +90,7 @@ def ftp_login_download(server=target):
         # starts going through files from the root directory
         download_ftp_files(ftp, '/')
     except Exception as e:
-        print(Fore.RED + "\n Exiting..." + Style.RESET_ALL)
+        print(Fore.RED + "\n Exiting, probably doesnt allow anonymous login..." + Style.RESET_ALL)
         print(e)
     ftp.quit()
 
@@ -102,24 +104,23 @@ def is_ftp_directory(ftp, item):
         return False
 
 # download files 
-def download_ftp_files(ftp, path):
+def download_ftp_files(ftp, path, local_dir=ftp_dir):
     ftp.cwd(path) # Change directory to the specified path
-    items = ftp.nlst() # List items in curr directory
+    items = ftp.nlst() # List items in current directory
     if items:
         print(f"\nFound the following files in '{path}':\n")
         for item in items:
             if is_ftp_directory(ftp, item):
                 print(Fore.BLUE + item + Style.RESET_ALL)
-                #Create local dir to save files in
+                # Create a local subdirectory to save files in
                 local_subdir = os.path.join(ftp_dir, item)
                 os.makedirs(local_subdir, exist_ok=True)
                 # Recursively go into subdirectories
-                download_ftp_files(ftp, item)
-
+                download_ftp_files(ftp, item, local_subdir)
             else:
                 print(Fore.YELLOW + item + Style.RESET_ALL)
-                # Download files in curr directory
-                local_file_path = os.path.join(ftp_dir, item)
+                # Download files in the current directory
+                local_file_path = os.path.join(local_dir, item)
                 with open(local_file_path, 'wb') as local_file:
                     ftp.retrbinary('RETR ' + item, local_file.write)
 
@@ -127,7 +128,8 @@ def download_ftp_files(ftp, path):
         print(Fore.RED + f"The folder: {path} is empty" + Style.RESET_ALL)
         ftp.cwd("..")
 
-""""""
+#  SMB
+
 
 
 
@@ -139,7 +141,8 @@ def download_ftp_files(ftp, path):
 
 
 # Check if the user wants to continue to do all advanced scans.
-check = input(Fore.GREEN + "\nDo you want to perform all advanced scans? (y/N)" + Style.RESET_ALL)
+print("What type of scan do you want to perform?")
+check = input(Fore.GREEN + "\nNmap Scan (1)\nFTP Enumeration (2)\nAll Scans (3)" + Style.RESET_ALL)
 if check.lower() != 'y':
     print(Fore.RED + "\nExiting..." + Style.RESET_ALL)
     sys.exit(0)
