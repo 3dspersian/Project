@@ -15,7 +15,7 @@ netrover_ascii = '''
 \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  
 '''
 
-print(netrover_ascii)
+print(Fore.LIGHTCYAN_EX + netrover_ascii + Style.RESET_ALL)
 
 #____
 working_dir = subprocess.Popen('pwd',shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -79,15 +79,13 @@ def nmap_scan(t,ports):
     except Exception as e:
         print(f"Error while running the deep nmap scan: {str(e)}")
 
-deep_scan = nmap_scan(target)
-
 #  FTP
 
+ftp_dir = working_dir.strip() + "/ftp"
 # Checks ftp for anon login
 def ftp_login_download(server=target):
     print("\nEnumerating FTP with ANON credentials...")
-    global ftp_dir
-    ftp_dir = working_dir.strip() + "/ftp"
+
     # check if the local ftp_directory to store the downloaded files is already created
     if not os.path.exists(ftp_dir):
         os.makedirs(ftp_dir)
@@ -101,7 +99,7 @@ def ftp_login_download(server=target):
         # starts going through files from the root directory
         download_ftp_files(ftp, '/')
     except Exception as e:
-        print(Fore.RED + "\n Exiting, probably doesnt allow anonymous login..." + Style.RESET_ALL)
+        print(Fore.RED + "\n[!] Exiting, probably doesnt allow anonymous login..." + Style.RESET_ALL)
         print(e)
     ftp.quit()
 
@@ -119,7 +117,7 @@ def download_ftp_files(ftp, path, local_dir=ftp_dir):
     ftp.cwd(path) # Change directory to the specified path
     items = ftp.nlst() # List items in current directory
     if items:
-        print(f"\nFound the following files in '{path}':\n")
+        print(f"\nFound the following files in '{path}':")
         for item in items:
             if is_ftp_directory(ftp, item):
                 print(Fore.BLUE + item + Style.RESET_ALL)
@@ -136,47 +134,78 @@ def download_ftp_files(ftp, path, local_dir=ftp_dir):
                     ftp.retrbinary('RETR ' + item, local_file.write)
 
     else:
-        print(Fore.RED + f"The folder: {path} is empty" + Style.RESET_ALL)
+        print(Fore.RED + f"[!] The folder: {path} is empty" + Style.RESET_ALL)
         ftp.cwd("..")
 
 #  SMB
+smb_dir = working_dir.strip() + "/smb"
+
 def smb_login_download(server_name=target):
+
+    # check if the local ftp_directory to store the downloaded files is already created
+    if not os.path.exists(smb_dir):
+        os.makedirs(smb_dir)
+
     # create smb connection object
     smb_connection = SMBConnection('', '', 'client', server_name, use_ntlm_v2=False)
-
-def smb_list_shares(smb, server_name=target):
-    list_of_shares = []
-    # Connect
     try:
-        smb.connect(server_name, 139)
+        # Connect
+        smb_connection.connect(server_name, 139)
 
-        # list shares
-        shares = smb.listShares()
-        for share in shares:
-            list_of_shares.append(share.name)
-            print(Fore.YELLOW + share.name + Style.RESET_ALL)
+        # List shares and download files from each share
+        shares = smb_connection.listShares()
+        if shares:
+            for share in shares:
+                try:
+                    print(f"\nConnecting to '{share.name}'...")
+                    smb_list_download_shares(smb_connection, share.name, '/')
+                except Exception as e:
+                    print(Fore.RED + f"\n[!] Can't connect to {share.name}..." + Style.RESET_ALL)
+    except Exception as e:
+        print(Fore.RED + f"[!] An error has occurred while processing the smb share.: {e}")
     finally:
-        smb.close
+        smb_connection.close
+   
+def smb_list_download_shares(smb, share_name, path):
+    files = smb.listPath(share_name, path)
+    for item in files:
+        if item.filename != "." and item.filename != "..":
 
+            if item.isDirectory:
+                directory = f"{path}/{item.filename}"
+                print(Fore.BLUE + directory + Style.RESET_ALL)
+                smb_list_download_shares(smb, share_name, directory)
+            else:
+                smb_download_shares(smb, share_name, path, item.filename)
 
-
-
-
-
+def smb_download_shares(smb, share_name, path, filename):
+    local_file_path = os.path.join(smb_dir, filename)
+    if path == '/':
+        remote_file_path = f"{filename}"
+    else:
+        remote_file_path = f"{path}/{filename}"
+    print(Fore.YELLOW + remote_file_path + Style.RESET_ALL)
+    with open(local_file_path, 'wb') as local_file:
+        smb.retrieveFile(share_name, remote_file_path, local_file)
 
 # Check if the user wants to continue to do all advanced scans.
 print("What type of scan do you want to perform?")
-check = input(Fore.GREEN + "\nNmap Scan (1)\nFTP Enumeration (2)\nAll Scans (3)" + Style.RESET_ALL)
-if str(check) != '1':
+check = input(Fore.GREEN + "\nNmap Scan (1)\nFTP Enumeration (2)\nSMB Enumeration (3)\nAll Scans (4)" + Style.RESET_ALL)
+if str(check) == '1':
     port_list = initial_scan(target)
     deep_scan = nmap_scan(target, port_list)
 
 elif str(check) == '2':
     ftp_enum = ftp_login_download()
-elif str(check) == '3':
+
+elif str(check) == '4':
     port_list = initial_scan(target)
-    deep_scan = nmap_scan(target, port_list)
+    deep_scan = nmap_scan(target, port_list)    
     ftp_enum = ftp_login_download()
+    smb_enum = smb_login_download()
+
+elif str(check) == '3':
+    smb_enum = smb_login_download()
 else:
-    print(Fore.RED + "\nInvalid option, Exiting..." + Style.RESET_ALL)
+    print(Fore.RED + "\n[!] Invalid option, Exiting..." + Style.RESET_ALL)
     sys.exit(0)
