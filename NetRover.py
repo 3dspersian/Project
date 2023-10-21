@@ -6,6 +6,8 @@ from colorama import Fore, Style
 import os
 from ftplib import FTP 
 from smb.SMBConnection import SMBConnection
+import requests
+from concurrent.futures import ThreadPoolExecutor
 
 netrover_ascii = '''
    ____   ____   ____   ____   ____   ____   ____   ____
@@ -188,24 +190,68 @@ def smb_download_shares(smb, share_name, path, filename):
     with open(local_file_path, 'wb') as local_file:
         smb.retrieveFile(share_name, remote_file_path, local_file)
 
+
+# Fuzzing
+def scan_directory(directory_url):
+    try:
+        response = requests.get(directory_url)
+        status_code = response.status_code
+        if response.status_code in [200, 301, 302, 307, 308]:
+            print(Fore.BLUE + f"{directory_url} ==> [{status_code}]" + Style.RESET_ALL)
+    except requests.exceptions.RequestException as e:
+        print(Fore.RED + f"[!] Error accessing {directory_url}: {e}" + Style.RESET_ALL)
+
+def directory_fuzzing(wordlist, url):
+    if not url.endswith('/'):
+        url += '/'
+    with open(wordlist, 'r') as words:
+        directory_urls = [url + line.strip() for line in words]
+    
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        executor.map(scan_directory, directory_urls)
+
+
 # Check if the user wants to continue to do all advanced scans.
-print("What type of scan do you want to perform?")
-check = input(Fore.GREEN + "\nNmap Scan (1)\nFTP Enumeration (2)\nSMB Enumeration (3)\nAll Scans (4)" + Style.RESET_ALL)
-if str(check) == '1':
+print("What type of scan do you want to perform?(input numbers 1 by 1.)")
+print(Fore.GREEN + "\nNmap Scan (1)\nFTP Enumeration (2)\nSMB Enumeration (3)\nDirectory Fuzzing (4)\nAll Scans (5)\nDone (9)" + Style.RESET_ALL)
+scans = []
+while True:
+    check = input()
+    if str(check) == '9':
+        #scans.append(str(check))
+        break
+    elif str(check) not in scans:
+        scans.append(str(check))
+
+if '1' in scans:
     port_list = initial_scan(target)
     deep_scan = nmap_scan(target, port_list)
-
-elif str(check) == '2':
+elif '2' in scans:
     ftp_enum = ftp_login_download()
-
-elif str(check) == '4':
+elif '3' in scans:
+    smb_enum = smb_login_download()
+elif '4' in scans:
+    url = input("URL: ")
+    wordlist = input("Wordlist: ")
+    if url and wordlist:
+        print("\nDirectory Fuzzing...\n")
+        directory_fuzzing(wordlist, url)
+    else:
+        print(Fore.RED + "You need both a url and a wordlist..." + Style.RESET_ALL)
+        sys.exit(0)
+elif '5' in scans:
+    url = input("URL: ")
+    wordlist = input("Wordlist: ")
     port_list = initial_scan(target)
     deep_scan = nmap_scan(target, port_list)    
     ftp_enum = ftp_login_download()
     smb_enum = smb_login_download()
 
-elif str(check) == '3':
-    smb_enum = smb_login_download()
+    if url and wordlist:
+        directory_fuzzing(wordlist, url)
+    else:
+        print(Fore.RED + "\n[!] You need both a url and a wordlist..." + Style.RESET_ALL)
+        sys.exit(0)
 else:
     print(Fore.RED + "\n[!] Invalid option, Exiting..." + Style.RESET_ALL)
     sys.exit(0)
