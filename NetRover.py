@@ -79,65 +79,66 @@ def nmap_scan(t,ports):
         print(stdout)
         return stdout
     except Exception as e:
-        print(f"Error while running the deep nmap scan: {str(e)}")
+        print(Fore.RED + f"[!] Error while running the deep nmap scan: {str(e)}" + Style.RESET_ALL)
 
 #  FTP
 
 ftp_dir = working_dir.strip() + "/ftp"
-# Checks ftp for anon login
+# Checks FTP for anon login
 def ftp_login_download(server=target):
     print("\nEnumerating FTP with ANON credentials...")
 
-    # check if the local ftp_directory to store the downloaded files is already created
+    # Check if the local FTP directory to store the downloaded files is already created
     if not os.path.exists(ftp_dir):
         os.makedirs(ftp_dir)
-      
+
     # Creating an FTP object to connect to the server
     ftp = FTP(server)
-    
-    # Attempt to  Log in anonymously
+
+    # Attempt to log in anonymously
     try:
         ftp.login()
-        # starts going through files from the root directory
+        # Start going through files from the root directory
         download_ftp_files(ftp, '/')
     except Exception as e:
-        print(Fore.RED + "\n[!] Exiting, probably doesnt allow anonymous login..." + Style.RESET_ALL)
+        print(Fore.RED + "\n[!] Exiting, probably doesn't allow anonymous login..." + Style.RESET_ALL)
         print(e)
     ftp.quit()
 
-# checks if the item is a directory, if yes returns true.
-def is_ftp_directory(ftp, item):
-    try:
-        ftp.cwd(item)
-        ftp.cwd("..")
-        return True
-    except:
-        return False
+# Checks if the item is a directory, if yes, returns True.
 
-# download files 
+# Download files, including hidden files
 def download_ftp_files(ftp, path, local_dir=ftp_dir):
-    ftp.cwd(path) # Change directory to the specified path
-    items = ftp.nlst() # List items in current directory
-    if items:
-        print(f"\nFound the following files in '{path}':")
-        for item in items:
-            if is_ftp_directory(ftp, item):
-                print(Fore.BLUE + item + Style.RESET_ALL)
-                # Create a local subdirectory to save files in
-                local_subdir = os.path.join(ftp_dir, item)
-                os.makedirs(local_subdir, exist_ok=True)
-                # Recursively go into subdirectories
-                download_ftp_files(ftp, item, local_subdir)
-            else:
-                print(Fore.YELLOW + item + Style.RESET_ALL)
-                # Download files in the current directory
-                local_file_path = os.path.join(local_dir, item)
-                with open(local_file_path, 'wb') as local_file:
-                    ftp.retrbinary('RETR ' + item, local_file.write)
+    ftp.cwd(path)  # Change directory to the specified path
 
-    else:
-        print(Fore.RED + f"[!] The folder: {path} is empty" + Style.RESET_ALL)
-        ftp.cwd("..")
+    # Use the LIST command to get a detailed directory listing
+    lines = []
+    ftp.retrlines("LIST -a", lines.append)
+
+    for line in lines:
+        parts = line.split()
+        item_name = parts[-1]
+
+        # Skip parent directory and current directory entries
+        if item_name in ['.', '..']:
+            continue
+
+        is_directory = line.startswith('d')
+
+        if is_directory:
+            print(Fore.BLUE + item_name + Style.RESET_ALL)
+            # Create a local subdirectory to save files in
+            local_subdir = os.path.join(ftp_dir, item_name)
+            os.makedirs(local_subdir, exist_ok=True)
+            # Recursively go into subdirectories
+            download_ftp_files(ftp, item_name, local_subdir)
+        else:
+            print(Fore.YELLOW + item_name + Style.RESET_ALL)
+            # Download files in the current directory
+            local_file_path = os.path.join(local_dir, item_name)
+            with open(local_file_path, 'wb') as local_file:
+                ftp.retrbinary(f"RETR {item_name}", local_file.write)
+
 
 #  SMB
 smb_dir = working_dir.strip() + "/smb"
@@ -164,7 +165,7 @@ def smb_login_download(server_name=target):
                 except Exception as e:
                     print(Fore.RED + f"\n[!] Can't connect to {share.name}..." + Style.RESET_ALL)
     except Exception as e:
-        print(Fore.RED + f"[!] An error has occurred while processing the smb share.: {e}")
+        print(Fore.RED + f"[!] An error has occurred while processing the smb share.: {e}" + Style.RESET_ALL)
     finally:
         smb_connection.close
    
@@ -199,7 +200,8 @@ def scan_directory(directory_url):
         if response.status_code in [200, 301, 302, 307, 308]:
             print(Fore.BLUE + f"{directory_url} ==> [{status_code}]" + Style.RESET_ALL)
     except requests.exceptions.RequestException as e:
-        print(Fore.RED + f"[!] Error accessing {directory_url}: {e}" + Style.RESET_ALL)
+        pass
+        # print(Fore.RED + f"[!] Error accessing {directory_url}: {e}" + Style.RESET_ALL)
 
 def directory_fuzzing(wordlist, url):
     if not url.endswith('/'):
@@ -211,47 +213,56 @@ def directory_fuzzing(wordlist, url):
         executor.map(scan_directory, directory_urls)
 
 
-# Check if the user wants to continue to do all advanced scans.
-print("What type of scan do you want to perform?(input numbers 1 by 1.)")
-print(Fore.GREEN + "\nNmap Scan (1)\nFTP Enumeration (2)\nSMB Enumeration (3)\nDirectory Fuzzing (4)\nAll Scans (5)\nDone (9)" + Style.RESET_ALL)
-scans = []
-while True:
-    check = input()
-    if str(check) == '9':
-        #scans.append(str(check))
-        break
-    elif str(check) not in scans:
-        scans.append(str(check))
+def main():
+    print("What type of scan do you want to perform?(input numbers 1 by 1.)")
+    print(Fore.GREEN + "\nNmap Scan (1)\nFTP Enumeration (2)\nSMB Enumeration (3)\nDirectory Fuzzing (4)\nAll Scans (5)\nDone (9)" + Style.RESET_ALL)
+    scans = []
+    
+    while True:
+        check = input()
+        if check == '9':
+            break
+        elif check not in scans:
+            scans.append(check)
+    if '4' in scans:
+        url = input("URL: ")
+        wordlist = input("Wordlist: ")
+    if '1' in scans:
+        port_list = initial_scan(target)
+        deep_scan = nmap_scan(target, port_list)
 
-if '1' in scans:
-    port_list = initial_scan(target)
-    deep_scan = nmap_scan(target, port_list)
-elif '2' in scans:
-    ftp_enum = ftp_login_download()
-elif '3' in scans:
-    smb_enum = smb_login_download()
-elif '4' in scans:
-    url = input("URL: ")
-    wordlist = input("Wordlist: ")
-    if url and wordlist:
-        print("\nDirectory Fuzzing...\n")
-        directory_fuzzing(wordlist, url)
-    else:
-        print(Fore.RED + "You need both a url and a wordlist..." + Style.RESET_ALL)
-        sys.exit(0)
-elif '5' in scans:
-    url = input("URL: ")
-    wordlist = input("Wordlist: ")
-    port_list = initial_scan(target)
-    deep_scan = nmap_scan(target, port_list)    
-    ftp_enum = ftp_login_download()
-    smb_enum = smb_login_download()
+    if '2' in scans:
+        ftp_enum = ftp_login_download()
 
-    if url and wordlist:
-        directory_fuzzing(wordlist, url)
-    else:
-        print(Fore.RED + "\n[!] You need both a url and a wordlist..." + Style.RESET_ALL)
+    if '3' in scans:
+        smb_enum = smb_login_download()
+
+    if '4' in scans:
+        if url and wordlist:
+            print("\nDirectory Fuzzing...\n")
+            directory_fuzzing(wordlist, url)
+        else:
+            print(Fore.RED + "You need both a URL and a wordlist..." + Style.RESET_ALL)
+            sys.exit(0)
+
+    if '5' in scans:
+        url = input("URL: ")
+        wordlist = input("Wordlist: ")
+        port_list = initial_scan(target)
+        deep_scan = nmap_scan(target, port_list)
+        ftp_enum = ftp_login_download()
+        smb_enum = smb_login_download()
+
+        if url and wordlist:
+            print("\nDirectory Fuzzing...\n")
+            directory_fuzzing(wordlist, url)
+        else:
+            print(Fore.RED + "\n[!] You need both a URL and a wordlist..." + Style.RESET_ALL)
+            sys.exit(0)
+
+    if not scans:
+        print(Fore.RED + "\n[!] No scan selected, Exiting..." + Style.RESET_ALL)
         sys.exit(0)
-else:
-    print(Fore.RED + "\n[!] Invalid option, Exiting..." + Style.RESET_ALL)
-    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
