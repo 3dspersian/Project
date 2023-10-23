@@ -98,13 +98,17 @@ def ftp_login_download(server=target):
     # Attempt to log in anonymously
     try:
         ftp = FTP(server)
+        
         ftp.login()
+        if ftp:
+            allowed = True
         # Start going through files from the root directory
         download_ftp_files(ftp, '/')
     except Exception as e:
         print(Fore.RED + "\n[!] Exiting, probably doesn't allow anonymous login..." + Style.RESET_ALL)
         print(e)
-    ftp.quit()
+    if allowed == True:
+        ftp.quit()
 
 # Checks if the item is a directory, if yes, returns True.
 
