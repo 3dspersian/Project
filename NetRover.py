@@ -93,10 +93,11 @@ def ftp_login_download(server=target):
         os.makedirs(ftp_dir)
 
     # Creating an FTP object to connect to the server
-    ftp = FTP(server)
+    # ftp = FTP(server)
 
     # Attempt to log in anonymously
     try:
+        ftp = FTP(server)
         ftp.login()
         # Start going through files from the root directory
         download_ftp_files(ftp, '/')
