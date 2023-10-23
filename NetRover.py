@@ -94,7 +94,7 @@ def ftp_login_download(server=target):
 
     # Creating an FTP object to connect to the server
     # ftp = FTP(server)
-
+    allowed = False
     # Attempt to log in anonymously
     try:
         ftp = FTP(server)
@@ -109,6 +109,8 @@ def ftp_login_download(server=target):
         print(e)
     if allowed == True:
         ftp.quit()
+    else:
+        pass
 
 # Checks if the item is a directory, if yes, returns True.
 
