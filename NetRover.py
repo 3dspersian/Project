@@ -211,11 +211,17 @@ def smb_download_shares(smb, share_name, path, filename):
 
 # Fuzzing
 def scan_directory(directory_url):
+    results_file = os.path.join(working_dir, "fuzz_results.txt")
+    if not os.path.exists(results_file):
+        with open(results_file, 'w'):
+            pass
     try:
         response = requests.get(directory_url)
         status_code = response.status_code
         if response.status_code in [200, 301, 302, 307, 308]:
             print(Fore.BLUE + f"{directory_url} ==> [{status_code}]" + Style.RESET_ALL)
+            with open(results_file, "a+") as results:
+                results.write(directory_url+"\n")
     except requests.exceptions.RequestException as e:
         pass
         # print(Fore.RED + f"[!] Error accessing {directory_url}: {e}" + Style.RESET_ALL)
