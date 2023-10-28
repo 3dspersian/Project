@@ -76,8 +76,13 @@ def nmap_scan(t,ports):
         print("Now running a deeper scan.")
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stdout, _ = process.communicate()
-        print(stdout)
-        return stdout
+
+        if _:
+            print(Fore.RED + f"[!] Error while printing the deep nmap scan, check the saved 'nmap.scan' file for results" + Style.RESET_ALL)
+
+        decoded_output = stdout.encode('utf-8', errors='ignore').decode('utf-8')
+        print(decoded_output)
+        return decoded_output
     except Exception as e:
         print(Fore.RED + f"[!] Error while running the deep nmap scan: {str(e)}" + Style.RESET_ALL)
 
@@ -105,8 +110,7 @@ def ftp_login_download(server=target):
         # Start going through files from the root directory
         download_ftp_files(ftp, '/')
     except Exception as e:
-        print(Fore.RED + "\n[!] Exiting, probably doesn't allow anonymous login..." + Style.RESET_ALL)
-        print(e)
+        print(Fore.RED + "\n[!] Exiting, probably doesn't allow anonymous login..." + Style.RESET_ALL + e)
     if allowed == True:
         ftp.quit()
     else:
@@ -182,14 +186,20 @@ def smb_list_download_shares(smb, share_name, path):
         if item.filename != "." and item.filename != "..":
 
             if item.isDirectory:
-                directory = f"{path}/{item.filename}"
+                if path == "/":
+                    directory = f"{path}{item.filename}"
+                else:
+                    directory = f"{path}/{item.filename}"
                 print(Fore.BLUE + directory + Style.RESET_ALL)
                 smb_list_download_shares(smb, share_name, directory)
             else:
                 smb_download_shares(smb, share_name, path, item.filename)
 
 def smb_download_shares(smb, share_name, path, filename):
-    local_file_path = os.path.join(smb_dir, filename)
+    share_path = os.path.join(smb_dir, share_name)
+    if not os.path.exists(share_path):
+        os.makedirs(share_path)
+    local_file_path = os.path.join(share_path, filename)
     if path == '/':
         remote_file_path = f"{filename}"
     else:
