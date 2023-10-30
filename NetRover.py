@@ -135,21 +135,22 @@ def download_ftp_files(ftp, path, local_dir=ftp_dir):
             continue
 
         is_directory = line.startswith('d')
-
-        if is_directory:
-            print(Fore.BLUE + item_name + Style.RESET_ALL)
-            # Create a local subdirectory to save files in
-            local_subdir = os.path.join(ftp_dir, item_name)
-            os.makedirs(local_subdir, exist_ok=True)
-            # Recursively go into subdirectories
-            download_ftp_files(ftp, item_name, local_subdir)
-        else:
-            print(Fore.YELLOW + item_name + Style.RESET_ALL)
-            # Download files in the current directory
-            local_file_path = os.path.join(local_dir, item_name)
-            with open(local_file_path, 'wb') as local_file:
-                ftp.retrbinary(f"RETR {item_name}", local_file.write)
-
+        try:
+            if is_directory:
+                print(Fore.BLUE + item_name + Style.RESET_ALL)
+                # Create a local subdirectory to save files in
+                local_subdir = os.path.join(ftp_dir, item_name)
+                os.makedirs(local_subdir, exist_ok=True)
+                # Recursively go into subdirectories
+                download_ftp_files(ftp, item_name, local_subdir)
+            else:
+                print(Fore.YELLOW + item_name + Style.RESET_ALL)
+                # Download files in the current directory
+                local_file_path = os.path.join(local_dir, item_name)
+                with open(local_file_path, 'wb') as local_file:
+                    ftp.retrbinary(f"RETR {item_name}", local_file.write)
+        except Exception as e:
+            print(Fore.RED + f"[!] Error downloading '{item_name}'... :{e}" + Style.RESET_ALL)
 
 #  SMB
 smb_dir = working_dir.strip() + "/smb"
