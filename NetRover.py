@@ -26,7 +26,7 @@ working_dir, _ = working_dir.communicate()
 
 # displays how to use the program if there arent enough args provided
 if len(sys.argv) != 2 or sys.argv[1] == '-h':
-    print("Usage: ./scanner.py <ip_address>")
+    print("Usage: ./NetRover.py <ip_address>")
     sys.exit(1)
 else:
     target = sys.argv[1]
