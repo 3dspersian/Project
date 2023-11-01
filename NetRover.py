@@ -156,7 +156,7 @@ def download_ftp_files(ftp, path, local_dir=ftp_dir):
 smb_dir = working_dir.strip() + "/smb"
 
 def smb_login_download(server_name=target):
-
+    print("\nStarting SMB Enumeration...")
     # check if the local ftp_directory to store the downloaded files is already created
     if not os.path.exists(smb_dir):
         os.makedirs(smb_dir)
@@ -182,19 +182,22 @@ def smb_login_download(server_name=target):
         smb_connection.close
    
 def smb_list_download_shares(smb, share_name, path):
-    files = smb.listPath(share_name, path)
-    for item in files:
-        if item.filename != "." and item.filename != "..":
+    try:
+        files = smb.listPath(share_name, path)
+        for item in files:
+            if item.filename != "." and item.filename != "..":
 
-            if item.isDirectory:
-                if path == "/":
-                    directory = f"{path}{item.filename}"
+                if item.isDirectory:
+                    if path == "/":
+                        directory = f"{path}{item.filename}"
+                    else:
+                        directory = f"{path}/{item.filename}"
+                    print(Fore.BLUE + directory + Style.RESET_ALL)
+                    smb_list_download_shares(smb, share_name, directory)
                 else:
-                    directory = f"{path}/{item.filename}"
-                print(Fore.BLUE + directory + Style.RESET_ALL)
-                smb_list_download_shares(smb, share_name, directory)
-            else:
-                smb_download_shares(smb, share_name, path, item.filename)
+                    smb_download_shares(smb, share_name, path, item.filename)
+    except:
+        print(Fore.RED + f"[!] There aren't any files in this share." + Style.RESET_ALL)
 
 def smb_download_shares(smb, share_name, path, filename):
     share_path = os.path.join(smb_dir, share_name)
