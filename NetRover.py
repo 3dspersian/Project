@@ -8,6 +8,10 @@ from ftplib import FTP
 from smb.SMBConnection import SMBConnection
 import requests
 from concurrent.futures import ThreadPoolExecutor
+import argparse
+
+parser = argparse.ArgumentParser()
+
 
 netrover_ascii = '''
    ____   ____   ____   ____   ____   ____   ____   ____
@@ -25,11 +29,18 @@ working_dir, _ = working_dir.communicate()
 #____
 
 # displays how to use the program if there arent enough args provided
-if len(sys.argv) != 2 or sys.argv[1] == '-h':
-    print("Usage: ./NetRover.py <ip_address>")
-    sys.exit(1)
-else:
-    target = sys.argv[1]
+# if len(sys.argv) != 2 or sys.argv[1] == '-h':
+#     print("Usage: ./NetRover.py <ip_address>")
+#     sys.exit(1)
+# else:
+#     target = sys.argv[1]
+parser.add_argument('target', help='Target IP address')
+parser.add_argument('--user', '-u', help='FTP username to login with')
+parser.add_argument('--password', '-p', help='FTP password')
+args = parser.parse_args()
+target = args.target
+username = args.user
+password = args.password
 
 # Nmap scan to discover open ports
 def initial_scan(target):
@@ -93,6 +104,7 @@ ftp_dir = working_dir.strip() + "/ftp"
 def ftp_login_download(server=target):
     print("\nEnumerating FTP with ANON credentials...")
 
+
     # Check if the local FTP directory to store the downloaded files is already created
     if not os.path.exists(ftp_dir):
         os.makedirs(ftp_dir)
@@ -103,8 +115,10 @@ def ftp_login_download(server=target):
     # Attempt to log in anonymously
     try:
         ftp = FTP(server)
-        
-        ftp.login()
+        if username and password:
+            ftp.login(user=username,passwd=password)
+        else:
+            ftp.login()
         if ftp:
             allowed = True
         # Start going through files from the root directory
@@ -252,8 +266,9 @@ def main():
         elif check not in scans:
             scans.append(check)
     if '4' in scans:
-        url = input("URL: ")
-        wordlist = input("Wordlist: ")
+        # url = input("URL: ")
+        # wordlist = input("Wordlist: ")
+        ...
     if '1' in scans:
         port_list = initial_scan(target)
         deep_scan = nmap_scan(target, port_list)
@@ -265,27 +280,29 @@ def main():
         smb_enum = smb_login_download()
 
     if '4' in scans:
-        if url and wordlist:
-            print("\nDirectory Fuzzing...\n")
-            directory_fuzzing(wordlist, url)
-        else:
-            print(Fore.RED + "You need both a URL and a wordlist..." + Style.RESET_ALL)
-            sys.exit(0)
+        # if url and wordlist:
+        #     print("\nDirectory Fuzzing...\n")
+        #     directory_fuzzing(wordlist, url)
+        # else:
+        #     print(Fore.RED + "You need both a URL and a wordlist..." + Style.RESET_ALL)
+        #     sys.exit(0)
+        ...
 
     if '5' in scans:
-        url = input("URL: ")
-        wordlist = input("Wordlist: ")
-        port_list = initial_scan(target)
-        deep_scan = nmap_scan(target, port_list)
-        ftp_enum = ftp_login_download()
-        smb_enum = smb_login_download()
+        # url = input("URL: ")
+        # wordlist = input("Wordlist: ")
+        # port_list = initial_scan(target)
+        # deep_scan = nmap_scan(target, port_list)
+        # ftp_enum = ftp_login_download()
+        # smb_enum = smb_login_download()
 
-        if url and wordlist:
-            print("\nDirectory Fuzzing...\n")
-            directory_fuzzing(wordlist, url)
-        else:
-            print(Fore.RED + "\n[!] You need both a URL and a wordlist..." + Style.RESET_ALL)
-            sys.exit(0)
+        # if url and wordlist:
+        #     print("\nDirectory Fuzzing...\n")
+        #     directory_fuzzing(wordlist, url)
+        # else:
+        #     print(Fore.RED + "\n[!] You need both a URL and a wordlist..." + Style.RESET_ALL)
+        #     sys.exit(0)
+        ...
 
     if not scans:
         print(Fore.RED + "\n[!] No scan selected, Exiting..." + Style.RESET_ALL)
